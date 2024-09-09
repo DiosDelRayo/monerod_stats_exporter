@@ -1,0 +1,6 @@
+address: "0.0.0.0"
+instances:
+  - path: "/home/thor/.bitmonero/lmdb/data.mdb"
+    monero_rpc_url: "http://127.0.0.1:18081/json_rpc"
+    network: main
+    pruned: false
