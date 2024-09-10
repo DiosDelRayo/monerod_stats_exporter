@@ -1,0 +1,30 @@
+services:
+  monerod-test-full:
+    image: vthor/monerod:latest
+    container_name: monerod_test_full
+    command: [ "--non-interactive", "--testnet", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=28081", "--confirm-external-bind", "--no-igd", "--restricted-rpc" ]
+    volumes:
+      - ./data/test/full:/data/.bitmonero/testnet
+    restart: unless-stopped
+
+  monerod-test-pruned:
+    image: vthor/monerod:latest
+    container_name: monerod_test_pruned
+    command: [ "--non-interactive", "--testnet", "--rpc-bind-ip=0.0.0.0", "--rpc-bind-port=28081", "--confirm-external-bind", "--prune-blockchain", "--sync-pruned-blocks", "--no-igd" ]
+    volumes:
+      - ./data/test/pruned:/data/.bitmonero/testnet  # Data directory mounted on host
+    restart: unless-stopped
+
+  # Prometheus exporter container
+  monerod-stats-exporter:
+    build: .
+    container_name: monerod_stats_exporter
+    volumes:
+      - ./docker-compose-config.yml:/app/config.yml:ro
+      - ./data:/data:ro
+    ports:
+      - "9123:9123"
+    depends_on:
+      - monerod-test-full
+      - monerod-test-pruned
+    restart: unless-stopped

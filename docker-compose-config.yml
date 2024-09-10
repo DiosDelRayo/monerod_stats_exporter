@@ -1,0 +1,12 @@
+interval: 10
+port: 9123
+address: "0.0.0.0"
+instances:
+  - path: "/data/test/full/lmdb/data.mdb"
+    monero_rpc_url: "http://monerod-test-full:28081/json_rpc"
+    network: test
+    pruned: false
+  - path: "/data/test/pruned/lmdb/data.mdb"
+    monero_rpc_url: "http://monerod-test-pruned:28081/json_rpc"
+    network: test
+    pruned: true
