@@ -44,10 +44,10 @@ instances:
    The values `network` and `pruned` do set the prefix of the metrics, so `network: test` and `pruned: true`
    will result in a prefix of `monero_test_pruned_` for all instance related metrics, so you will
    get:
-        - monero_test_pruned_file_size
-        - monero_test_pruned_file_last_update
-        - monero_test_pruned_block_height
-        - monero_test_pruned_timestamp
+    - monero_test_pruned_file_size
+    - monero_test_pruned_file_last_update
+    - monero_test_pruned_block_height
+    - monero_test_pruned_timestamp
 
 ## License
 
