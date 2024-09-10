@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+
+from argparse import ArgumentParser
+from sys import exit
+
+try:
+    # looks nicer
+    from ruamel.yaml import YAML
+    dump = YAML(typ='unsafe', pure=False).dump
+except:
+    from yaml import dump
+
+
+RPC_PORTS = { 'main': 18081, 'test': 28081, 'stage': 38081 }
+NETWORK_PATH = { 'main': '', 'test': '/testnet', 'stage': '/stagenet' }
+ORDER = list(NETWORK_PATH.keys())
+
+class ConfigGenerator:
+
+    def __init__(
+        self,
+        networks: set[tuple[str, bool]],
+        interval: int = 300,
+        port: int = 9123,
+        docker_compose_file: str = 'docker-compose.yml',
+        config_file: str = 'docker-compose-config.yml'
+    ):
+        self.interval: int = interval
+        self.port: int = port
+        self.networks: set[tuple[str, bool]] = networks
+        self.docker_compose_file: str = docker_compose_file
+        self.config_file: str = config_file
+
+    def generate_docker_compose(self) -> None:
+        services: dict = {} 
+        for network, pruned in self.networks: # unfortunately, a dict don't keep the order, but sort alphabetically
+            services[f"monero-{network}-{'pruned' if pruned else 'full'}"] = {
+                'image': 'vthor/monerod:latest',
+                'container_name': f"monero_{network}_{'pruned' if pruned else 'full'}",
+                'command': self.get_service_command(RPC_PORTS[network], network, pruned),
+                'volumes': [
+                    f"./data/{network}/{'pruned' if pruned else 'full'}:/data/.bitmonero{NETWORK_PATH[network]}"
+                ],
+                'restart': 'unless-stopped'
+            }
+        services['monerod_stats_exporter'] = {
+            'build': '.',
+            'container_name': 'monerod_stats_exporter',
+            'volumes': [
+                './docker-compose-config.yml:/app/config.yml:ro',
+                './data:/data:ro'
+            ],
+            'ports': [ f"{self.port}:{self.port}" ],
+            'depends_on': [service for service in services],
+            'restart': 'unless-restart'
+        }
+        docker_compose = {
+            'services': services
+        }
+        with open(self.docker_compose_file, 'w') as f:
+            dump(docker_compose, f)
+
+    @staticmethod
+    def get_service_command(port: int, network: str, pruned: bool) -> list[str]:
+        out: list[str] = [
+            '--non-interactive',
+            '--rpc-bind-ip=0.0.0.0',
+            f'--rpc-bind-port={port}',
+            '--confirm-external-bind',
+            '--no-igd'
+        ]
+        if network == 'test':
+            out.append('--testnet')
+        if network == 'stage':
+            out.append('--stagenet')
+        if pruned:
+            out += ['--prune-blockchain', '--sync-pruned-blocks' ]
+        return out
+
+    def generate_config(self) -> None:
+        config = {
+            'interval': self.interval,
+            'port': self.port,
+            'address': '0.0.0.0',
+            'instances': [{
+                'path': f"/data/{net}/{'pruned' if pruned else 'full'}/lmdb/data.mdb",
+                'monero_rpc_url': f"http://monerod-{net}-{'pruned' if pruned else 'full'}:{RPC_PORTS[net]}/json_rpc",
+                'network': net,
+                'pruned': pruned
+            } for net, pruned in self.networks]
+        }
+
+        with open(self.config_file, 'w') as f:
+            dump(config, f)
+
+    def create_directories(self) -> None:
+        pass
+
+    def run(self) -> None:
+        self.generate_docker_compose()
+        self.generate_config()
+        self.create_directories()
+
+
+def parse_networks(networks_list: str) -> set[tuple[str, bool]]:
+    networks: set[tuple[str, bool]] = set()
+    for network in networks_list:
+        if ':' in network:
+            net, mode = network.split(':')
+        else:
+            net, mode = network, 'full'
+        if net not in NETWORK_PATH:
+            print(f'Ignoring {net} as network: not known')
+            continue
+        networks.add((net, mode.startswith('prune')))
+    return sorted(networks, key=lambda x: ORDER.index(x[0]) * 5 + (1 if x[1] else 0))
+
+def main():
+    parser = ArgumentParser(description='Generate Docker and Config YAMLs for Monero Stats Exporter.')
+    parser.add_argument('--interval', '-i', type=int, default=300, help='Seconds between update (default: 300)')
+    parser.add_argument('--port', '-p', type=int, default=9123, help='Port for Monero Stats Exporter (default: 9123)')
+    parser.add_argument('--docker-compose-file', '-d', type=str, default='docker-compose.yml', help='Name of the Docker Compose YAML file')
+    parser.add_argument('--config-file', '-c', type=str, default='docker-compose-config.yml', help='Name of the config YAML file')
+    parser.add_argument('networks', nargs='*', help='List of networks with optional mode (e.g., main (defaults to full), main:pruned, test:full)')
+
+    args = parser.parse_args()
+
+    networks: set[tuple[str, bool]] = parse_networks(args.networks)
+
+    if len(networks) == 0:
+        print('Nothing to do, no networks declared!\n\n')
+        parser.print_help()
+        exit(1)
+    
+    config_gen = ConfigGenerator(
+        networks,
+        interval=args.interval,
+        port=args.port,
+        docker_compose_file=args.docker_compose_file,
+        config_file=args.config_file
+    )
+    
+    config_gen.run()
+
+if __name__ == "__main__":
+    main()
+

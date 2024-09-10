@@ -15,7 +15,6 @@ services:
       - ./data/test/pruned:/data/.bitmonero/testnet  # Data directory mounted on host
     restart: unless-stopped
 
-  # Prometheus exporter container
   monerod-stats-exporter:
     build: .
     container_name: monerod_stats_exporter
