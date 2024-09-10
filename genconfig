@@ -2,6 +2,7 @@
 
 from argparse import ArgumentParser
 from sys import exit
+from os import makedirs
 
 try:
     # looks nicer
@@ -34,9 +35,9 @@ class ConfigGenerator:
     def generate_docker_compose(self) -> None:
         services: dict = {} 
         for network, pruned in self.networks: # unfortunately, a dict don't keep the order, but sort alphabetically
-            services[f"monero-{network}-{'pruned' if pruned else 'full'}"] = {
+            services[f"monerod-{network}-{'pruned' if pruned else 'full'}"] = {
                 'image': 'vthor/monerod:latest',
-                'container_name': f"monero_{network}_{'pruned' if pruned else 'full'}",
+                'container_name': f"monerod_{network}_{'pruned' if pruned else 'full'}",
                 'command': self.get_service_command(RPC_PORTS[network], network, pruned),
                 'volumes': [
                     f"./data/{network}/{'pruned' if pruned else 'full'}:/data/.bitmonero{NETWORK_PATH[network]}"
@@ -47,12 +48,12 @@ class ConfigGenerator:
             'build': '.',
             'container_name': 'monerod_stats_exporter',
             'volumes': [
-                './docker-compose-config.yml:/app/config.yml:ro',
+                f'./{self.config_file}:/app/config.yml:ro',
                 './data:/data:ro'
             ],
             'ports': [ f"{self.port}:{self.port}" ],
             'depends_on': [service for service in services],
-            'restart': 'unless-restart'
+            'restart': 'unless-stopped'
         }
         docker_compose = {
             'services': services
@@ -94,7 +95,9 @@ class ConfigGenerator:
             dump(config, f)
 
     def create_directories(self) -> None:
-        pass
+        for network, pruned in self.networks:
+            path = f"./data/{network}/{'pruned' if pruned else 'full'}"
+            makedirs(path, exist_ok=True)
 
     def run(self) -> None:
         self.generate_docker_compose()

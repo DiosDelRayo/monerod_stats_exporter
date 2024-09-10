@@ -7,6 +7,40 @@ is based on the [Prometheus](https://prometheus.io) [python client module](https
 
 ## Install
 
+### Quickstart (with genconfig and docker compose)
+
+```sh
+git clone https://github.com/DiosDelRayo/monerod_stats_exporter
+cd monerod_stats_exporter
+python3 -m venv .
+pip install -r requirements.txt
+./genconfig -i 30 test test:pruned stage:pruned
+sudo chown -R 1000:1000 data # docker uid is 1000
+docker compose up -d
+```
+
+This will give the nodes to have metrics for test full node, test purned node and stage purned node.
+Want mainnet data change the `./genconfig` line to `./genconfig main main:pruned`, `-i` is the interval
+how often the metrics will be updated in seconds. Important, metrics are only usefull after the node is
+synced, this is visible on the metric `monero_main_block_height` for main full for example, this value will
+be 0 until the noded is completely synced.
+
+Use: `./genconfig -h` to see options (there are no much). But essential there is:
+- main (main:full)
+- main:pruned
+- test (test:full)
+- test:pruned
+- stage (stage:full)
+- stage:pruned
+
+Beware of the space need on the disk of the data folder! [Space needed for main](https://docs.getmonero.org/technical-specs/#block-size), in reality this project is to provide exactly this data. :D
+As of September 2024 it is about this figures for full nodes:
+- main: 210 GB
+- test: 6 GB
+- stage: 7 GB
+
+Pruned nodes size, should be around 40% of the full node size.
+
 ### run on bare metal
 ```sh
 git clone https://github.com/DiosDelRayo/monerod_stats_exporter
@@ -23,6 +57,7 @@ config.yml:
 ```yaml
 port: 9123
 address: "0.0.0.0"
+
 interval: 300
 instances:
   - path: "/path/to/data.mdb"
