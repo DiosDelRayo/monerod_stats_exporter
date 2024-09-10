@@ -30,24 +30,24 @@ instances:
     network: main
     pruned: false
 ```
-**port**: is optional and defaults to 9123
-**address**: is optional and defaults to 127.0.0.1, so in a Docker environment you want to set it to "0.0.0.0"
-**interval**: is optional and defaults to 300, which are 5 minutes in seconds
-**instances**: you need at least on instance that this exporter makes any sense
-               each instance need to provide:
-               - **path**: path to the monero database
-               - **monero_rpc_url**: the url for the monerod RPC
-               - **network**: main, test, stage, stress (in reality you can use whatever as long it contains
-                              letters and is used for the name of the metric
-               - **pruned**: `false` for a full node and `true` for a pruned node
 
-               The values `network` and `pruned` do set the prefix of the metrics, so `network: test` and `pruned: true`
-               will result in a prefix of `monero_test_pruned_` for all instance related metrics, so you will
-               get:
-                    - monero_test_pruned_file_size
-                    - monero_test_pruned_file_last_update
-                    - monero_test_pruned_block_height
-                    - monero_test_pruned_timestamp
+- **port**: is optional and defaults to 9123
+- **address**: is optional and defaults to 127.0.0.1, so in a Docker environment you want to set it to "0.0.0.0"
+- **interval**: is optional and defaults to 300, which are 5 minutes in seconds
+- **instances**: you need at least on instance that this exporter makes any sense each instance need to provide:
+   - **path**: path to the monero database
+   - **monero_rpc_url**: the url for the monerod RPC
+   - **network**: main, test, stage, stress (in reality you can use whatever as long it contains
+                  letters and is used for the name of the metric
+   - **pruned**: `false` for a full node and `true` for a pruned node
+
+   The values `network` and `pruned` do set the prefix of the metrics, so `network: test` and `pruned: true`
+   will result in a prefix of `monero_test_pruned_` for all instance related metrics, so you will
+   get:
+        - monero_test_pruned_file_size
+        - monero_test_pruned_file_last_update
+        - monero_test_pruned_block_height
+        - monero_test_pruned_timestamp
 
 ## License
 
